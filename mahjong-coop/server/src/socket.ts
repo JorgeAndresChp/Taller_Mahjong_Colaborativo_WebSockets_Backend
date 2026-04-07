@@ -2,7 +2,7 @@ import { Server as SocketIOServer, Socket } from 'socket.io';
 import { createGame, addPlayer, removePlayer, selectTile } from './game';
 import { GameState } from './types';
 
-let gameState: GameState = createGame(15);
+let gameState: GameState = createGame();
 
 export function setupSocket(io: SocketIOServer): void {
   io.on('connection', (socket: Socket) => {
@@ -32,8 +32,8 @@ export function setupSocket(io: SocketIOServer): void {
             gameState = {
               ...gameState,
               tiles: gameState.tiles.map(t =>
-                t.isFlipped && !t.isMatched && t.lockedBy === null
-                  ? { ...t, isFlipped: false }
+                (!t.isMatched && t.lockedBy === null)
+                  ? { ...t, isFlipped: true, lockedBy: null }
                   : t
               ),
             };

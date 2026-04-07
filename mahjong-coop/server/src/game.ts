@@ -1,5 +1,6 @@
 import { Tile, Player, GameState, ScoreSnapshot } from './types';
 
+// 🔀 Mezclar
 function shuffle<T>(array: T[]): T[] {
   const arr = [...array];
   for (let i = arr.length - 1; i > 0; i--) {
@@ -9,13 +10,92 @@ function shuffle<T>(array: T[]): T[] {
   return arr;
 }
 
-export function createGame(pairCount: number): GameState {
-  const tiles: Tile[] = shuffle(
-    Array.from({ length: pairCount }, (_, i): Tile[] => [
-      { id: `tile-${i}-a`, symbol: i, isFlipped: false, isMatched: false, lockedBy: null },
-      { id: `tile-${i}-b`, symbol: i, isFlipped: false, isMatched: false, lockedBy: null },
-    ]).flat()
+// 🧠 Posiciones tipo tortuga (Mahjong real)
+function getClassicTurtlePositions(): { x: number; y: number; z: number }[] {
+  const pos: { x: number; y: number; z: number }[] = [];
+
+  for (let y = 1; y <= 6; y++) {
+    for (let x = 2; x <= 13; x++) {
+      pos.push({ x, y, z: 0 });
+    }
+  }
+
+  for (let x = 4; x <= 9; x++) {
+    pos.push({ x, y: 0, z: 0 });
+    pos.push({ x, y: 7, z: 0 });
+  }
+
+  for (let y = 1; y <= 6; y++) {
+    for (let x = 4; x <= 9; x++) {
+      pos.push({ x: x + 0.5, y: y + 0.5, z: 1 });
+    }
+  }
+
+  for (let y = 2; y <= 5; y++) {
+    for (let x = 5; x <= 8; x++) {
+      pos.push({ x: x + 1, y: y + 1, z: 2 });
+    }
+  }
+
+  for (let y = 3; y <= 4; y++) {
+    for (let x = 6; x <= 7; x++) {
+      pos.push({ x: x + 1.5, y: y + 1.5, z: 3 });
+    }
+  }
+
+  pos.push({ x: 8, y: 4.5, z: 4 });
+
+  return pos.slice(0, 144);
+}
+
+// 🔥 Regla Mahjong (bloqueos)
+function isSelectable(tile: any, tiles: any[]): boolean {
+  if (tile.isMatched) return false;
+
+  const active = tiles.filter(t => !t.isMatched);
+
+  const hasTop = active.some(t =>
+    t.z > tile.z &&
+    Math.abs(t.x - tile.x) < 1 &&
+    Math.abs(t.y - tile.y) < 1
   );
+
+  if (hasTop) return false;
+  const hasLeft = active.some(t =>
+    t.z === tile.z &&
+    Math.abs(t.y - tile.y) < 0.6 &&
+    t.x < tile.x &&
+    tile.x - t.x < 1.1  
+  );
+
+  const hasRight = active.some(t =>
+    t.z === tile.z &&
+    Math.abs(t.y - tile.y) < 0.6 &&
+    t.x > tile.x &&
+    t.x - tile.x < 1.1  
+  );
+
+  return !hasLeft || !hasRight;
+}
+
+// 🧱 Crear juego
+export function createGame(): GameState {
+  const positions = getClassicTurtlePositions();
+
+  let tiles: Tile[] = positions.map((pos, i) => ({
+    id: `tile-${i}`,
+    x: pos.x,
+    y: pos.y,
+    z: pos.z,
+    symbol: Math.floor(i / 2),
+    isMatched: false,
+    isFlipped: true,
+    lockedBy: null,
+  }));
+
+  // Mezclar símbolos
+  const symbols = shuffle(tiles.map(t => t.symbol));
+  tiles = tiles.map((t, i) => ({ ...t, symbol: symbols[i] }));
 
   return {
     tiles,
@@ -26,30 +106,8 @@ export function createGame(pairCount: number): GameState {
   };
 }
 
+// 👤 Jugadores
 export function addPlayer(state: GameState, id: string, name: string): GameState {
-  const sameId = state.players.find(p => p.id === id);
-  if (sameId) {
-    return {
-      ...state,
-      players: state.players.map(p =>
-        p.id === id ? { ...p, isConnected: true } : p
-      ),
-    };
-  }
-
-  const sameName = state.players.find(p => p.name === name && !p.isConnected);
-  if (sameName) {
-    return {
-      ...state,
-      players: state.players.map(p =>
-        p.name === name && !p.isConnected ? { ...p, id, isConnected: true } : p
-      ),
-      tiles: state.tiles.map(t =>
-        t.lockedBy === sameName.id ? { ...t, lockedBy: id } : t
-      ),
-    };
-  }
-
   const newPlayer: Player = { id, name, score: 0, isConnected: true };
 
   return {
@@ -66,7 +124,7 @@ export function removePlayer(state: GameState, id: string): GameState {
       p.id === id ? { ...p, isConnected: false } : p
     ),
     tiles: state.tiles.map(t =>
-      t.lockedBy === id ? { ...t, lockedBy: null, isFlipped: false } : t
+      t.lockedBy === id ? { ...t, lockedBy: null } : t
     ),
   };
 }
@@ -76,80 +134,68 @@ export function selectTile(
   tileId: string,
   playerId: string
 ): { newState: GameState; event: string | null } {
+
   const tile = state.tiles.find(t => t.id === tileId);
+  const selected = state.tiles.filter(t => t.lockedBy === playerId);
 
-  if (!tile || tile.isMatched || (tile.lockedBy !== null && tile.lockedBy !== playerId)) {
-    return { newState: state, event: null };
-  }
-
-  const alreadySelected = state.tiles.find(
-    t => t.lockedBy === playerId && t.id !== tileId
-  );
-
-  const stateWithFlipped: GameState = {
-    ...state,
-    tiles: state.tiles.map(t =>
-      t.id === tileId ? { ...t, isFlipped: true, lockedBy: playerId } : t
-    ),
-  };
-
-  if (alreadySelected) {
-    const { newState, isMatch } = checkMatch(
-      stateWithFlipped,
-      alreadySelected.id,
-      tileId,
-      playerId
-    );
-    return { newState, event: isMatch ? 'match' : 'no-match' };
-  }
-
-  return { newState: stateWithFlipped, event: null };
+if (
+  !tile ||
+  tile.isMatched ||
+  (tile.lockedBy !== null && tile.lockedBy !== playerId) ||
+  (selected.length === 0 && !isSelectable(tile, state.tiles))
+) {
+  return { newState: state, event: null };
 }
 
-export function checkMatch(
-  state: GameState,
-  t1Id: string,
-  t2Id: string,
-  playerId: string
-): { newState: GameState; isMatch: boolean } {
-  const t1 = state.tiles.find(t => t.id === t1Id);
-  const t2 = state.tiles.find(t => t.id === t2Id);
+  if (selected.length === 0) {
+    return {
+      newState: {
+        ...state,
+        tiles: state.tiles.map(t => ({
+          ...t,
+          lockedBy: t.id === tileId ? playerId : null
+        })),
+      },
+      event: null,
+    };
+  }
 
-  if (!t1 || !t2) return { newState: state, isMatch: false };
+  const first = selected[0];
 
-  const isMatch = t1.symbol === t2.symbol;
+if (first.id === tile.id) {
+  return {
+    newState: {
+      ...state,
+      tiles: state.tiles.map(t =>
+        t.lockedBy === playerId ? { ...t, lockedBy: null } : t
+      ),
+    },
+    event: null,
+  };
+}
 
-  const updatedTiles = state.tiles.map(t => {
-    if (t.id !== t1Id && t.id !== t2Id) return t;
-    return isMatch
-      ? { ...t, isMatched: true, isFlipped: true, lockedBy: null }
-      : { ...t, isFlipped: true, lockedBy: null };
-  });
+const isMatch = first.symbol === tile.symbol;
 
-  const updatedPlayers = isMatch
-    ? state.players.map(p =>
-        p.id === playerId ? { ...p, score: p.score + 1 } : p
-      )
-    : state.players;
+  let newTiles: Tile[];
 
-  const scoreHistory = isMatch
-    ? [
-        ...state.scoreHistory,
-        {
-          timestamp: Date.now(),
-          scores: Object.fromEntries(updatedPlayers.map(p => [p.id, p.score])),
-        } satisfies ScoreSnapshot,
-      ]
-    : state.scoreHistory;
+if (isMatch) {
+  newTiles = state.tiles.map(t =>
+    t.id === first.id || t.id === tile.id
+      ? { ...t, isMatched: true, lockedBy: null }
+      : t
+  );
+} else {
+  newTiles = state.tiles.map(t =>
+    t.lockedBy === playerId ? { ...t, lockedBy: null } : t
+  );
+}
 
   return {
     newState: {
       ...state,
-      tiles: updatedTiles,
-      players: updatedPlayers,
-      scoreHistory,
-      isGameOver: updatedTiles.every(t => t.isMatched),
+      tiles: newTiles,
+      isGameOver: newTiles.every(t => t.isMatched),
     },
-    isMatch,
+    event: isMatch ? 'match' : 'no-match',
   };
 }

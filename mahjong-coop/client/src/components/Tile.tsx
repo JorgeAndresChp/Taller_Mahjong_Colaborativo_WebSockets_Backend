@@ -1,20 +1,22 @@
 import React from 'react';
 import { type Tile as TileType } from '../types';
 
-// Map symbol numbers to emojis (Mahjong symbols)
-const SYMBOL_MAP = ['🀄', '🀅', '🀆', '🀇', '🀈', '🀉', '🀊', '🀋', '🀌', '🀍', '🀎', '🀏', '🀐', '🀑', '🀒'];
+// Map symbol numbers to emojis (visible standard emojis)
+const SYMBOL_MAP = ['🌸', '🌺', '🌻', '🌷', '🌹', '🏮', '🎋', '🎍', '⛩️', '🎎', '🎏', '🎐', '🎑', '🎀', '🎁'];
 
 const getSymbolEmoji = (symbolNumber: number): string => {
-  return SYMBOL_MAP[symbolNumber] || '❓';
+  // Ensure each symbol number 0-14 maps to a unique emoji
+  return SYMBOL_MAP[Math.abs(symbolNumber) % SYMBOL_MAP.length] || '❓';
 };
 
 interface TileProps {
   tile: TileType;
+  isBlocked?: boolean;
   currentPlayerId: string;
   onClick: (id: string) => void;
 }
 
-export const Tile: React.FC<TileProps> = React.memo(({ tile, currentPlayerId, onClick }) => {
+export const Tile: React.FC<TileProps> = React.memo(({ tile, isBlocked = false, currentPlayerId, onClick }) => {
   const isLockedByMe = tile.lockedBy === currentPlayerId;
   const isLockedByOther = tile.lockedBy !== null && !isLockedByMe;
   const showSymbol = tile.isFlipped || tile.isMatched;
@@ -80,6 +82,19 @@ export const Tile: React.FC<TileProps> = React.memo(({ tile, currentPlayerId, on
       };
     }
 
+    // Blocked tiles (grayed out - has tiles above)
+    if (isBlocked) {
+      return {
+        ...base,
+        backgroundColor: '#9ca3af',
+        backgroundImage: 'linear-gradient(135deg, #b4b7bb 0%, #9ca3af 50%, #8b92a4 100%)',
+        borderColor: '#6b7280',
+        opacity: 0.6,
+        cursor: 'not-allowed',
+        boxShadow: '0 2px 4px rgba(0,0,0,0.3), inset 0 1px 0 rgba(255,255,255,0.1)',
+      };
+    }
+
     // Hidden tile (dark)
     if (!showSymbol) {
       return {
@@ -133,6 +148,20 @@ export const Tile: React.FC<TileProps> = React.memo(({ tile, currentPlayerId, on
         ) : (
           <span style={{ fontSize: '1.5rem', color: '#9ca3af', fontWeight: 'bold' }}>
             麻
+          </span>
+        )}
+        {isBlocked && (
+          <span
+            style={{
+              fontSize: '0.5rem',
+              position: 'absolute',
+              bottom: '2px',
+              color: '#4b5563',
+              fontWeight: 'bold',
+              letterSpacing: '0.5px',
+            }}
+          >
+            BLK
           </span>
         )}
         {isLockedByOther && (
