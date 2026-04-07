@@ -1,121 +1,116 @@
-import { useState } from 'react'
-import reactLogo from './assets/react.svg'
-import viteLogo from './assets/vite.svg'
-import heroImg from './assets/hero.png'
-import './App.css'
+import React, { useState, useMemo } from 'react';
+import { Lobby } from './components/Lobby';
+import { Board } from './components/Board';
+import { Scoreboard } from './components/Scoreboard';
+import { LiveChart } from './components/LiveChart';
+import { useSocket } from './hooks/useSockets';
 
-function App() {
-  const [count, setCount] = useState(0)
+const App: React.FC = () => {
+  const { gameState, setGameState, joinGame } = useSocket();
+  const [currentPlayerId, setCurrentPlayerId] = useState<string | null>(null);
+
+  const currentPlayer = useMemo(() => 
+    gameState.players.find(p => p.id === currentPlayerId), 
+    [gameState.players, currentPlayerId]
+  );
+
+  const handleJoin = (name: string) => {
+    joinGame(name);
+    setCurrentPlayerId('me'); // Mocking our ID as 'me'
+  };
+
+  const handleTileClick = (tileId: string) => {
+    if (!currentPlayerId) return;
+
+    setGameState(prev => {
+      const newTiles = [...prev.tiles];
+      const clickedTile = newTiles.find(t => t.id === tileId);
+      
+      if (!clickedTile || clickedTile.isMatched || clickedTile.lockedBy) return prev;
+
+      // Find if player already has one tile flipped
+      const alreadyFlippedIdx = newTiles.findIndex(t => t.lockedBy === currentPlayerId && !t.isMatched);
+
+      if (alreadyFlippedIdx > -1) {
+        const firstTile = newTiles[alreadyFlippedIdx];
+        
+        if (firstTile.id === tileId) return prev; // Clicked same tile
+
+        if (firstTile.symbol === clickedTile.symbol) {
+          // MATCH FOUND
+          firstTile.isMatched = true;
+          firstTile.lockedBy = null;
+          clickedTile.isMatched = true;
+          clickedTile.isFlipped = true;
+          
+          const newPlayers = prev.players.map(p => 
+            p.id === currentPlayerId ? { ...p, score: p.score + 10 } : p
+          );
+
+          return { 
+            ...prev, 
+            tiles: newTiles, 
+            players: newPlayers,
+            scoreHistory: [...prev.scoreHistory, {
+              timestamp: Date.now(),
+              scores: newPlayers.reduce<Record<string, number>>((acc, p) => ({ ...acc, [p.id]: p.score }), {})
+            }]
+          };
+        } else {
+          // NO MATCH - Flip back after delay (simulated here instantly for UI state)
+          clickedTile.isFlipped = true;
+          clickedTile.lockedBy = currentPlayerId;
+          
+          // In a real app, a timer would reset these
+          return { ...prev, tiles: newTiles };
+        }
+      } else {
+        // FIRST TILE SELECTION
+        clickedTile.isFlipped = true;
+        clickedTile.lockedBy = currentPlayerId;
+        return { ...prev, tiles: newTiles };
+      }
+    });
+
+    // Auto-reset logic for non-matches
+    setTimeout(() => {
+      setGameState(prev => {
+        const tiles = prev.tiles.map(t => {
+          if (t.lockedBy === currentPlayerId && !t.isMatched) {
+            return { ...t, isFlipped: false, lockedBy: null };
+          }
+          return t;
+        });
+        return { ...prev, tiles };
+      });
+    }, 1000);
+  };
+
+  if (!currentPlayerId) {
+    return <Lobby joinGame={handleJoin} />;
+  }
 
   return (
-    <>
-      <section id="center">
-        <div className="hero">
-          <img src={heroImg} className="base" width="170" height="179" alt="" />
-          <img src={reactLogo} className="framework" alt="React logo" />
-          <img src={viteLogo} className="vite" alt="Vite logo" />
-        </div>
-        <div>
-          <h1>Get started</h1>
-          <p>
-            Edit <code>src/App.tsx</code> and save to test <code>HMR</code>
-          </p>
-        </div>
-        <button
-          className="counter"
-          onClick={() => setCount((count) => count + 1)}
-        >
-          Count is {count}
-        </button>
-      </section>
+    <div style={{ fontFamily: 'sans-serif', padding: '20px', backgroundColor: '#f0f2f5', minHeight: '100vh' }}>
+      <header style={{ textAlign: 'center', marginBottom: '20px' }}>
+        <h1>Mahjong Co-op</h1>
+        <p>Welcome, <strong>{currentPlayer?.name}</strong>! Find matching pairs with your team.</p>
+      </header>
 
-      <div className="ticks"></div>
-
-      <section id="next-steps">
-        <div id="docs">
-          <svg className="icon" role="presentation" aria-hidden="true">
-            <use href="/icons.svg#documentation-icon"></use>
-          </svg>
-          <h2>Documentation</h2>
-          <p>Your questions, answered</p>
-          <ul>
-            <li>
-              <a href="https://vite.dev/" target="_blank">
-                <img className="logo" src={viteLogo} alt="" />
-                Explore Vite
-              </a>
-            </li>
-            <li>
-              <a href="https://react.dev/" target="_blank">
-                <img className="button-icon" src={reactLogo} alt="" />
-                Learn more
-              </a>
-            </li>
-          </ul>
+      <div style={{ display: 'flex', gap: '30px', justifyContent: 'center', flexWrap: 'wrap' }}>
+        <Board 
+          tiles={gameState.tiles} 
+          currentPlayerId={currentPlayerId} 
+          onTileClick={handleTileClick} 
+        />
+        
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+          <Scoreboard players={gameState.players} />
+          <LiveChart history={gameState.scoreHistory} />
         </div>
-        <div id="social">
-          <svg className="icon" role="presentation" aria-hidden="true">
-            <use href="/icons.svg#social-icon"></use>
-          </svg>
-          <h2>Connect with us</h2>
-          <p>Join the Vite community</p>
-          <ul>
-            <li>
-              <a href="https://github.com/vitejs/vite" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#github-icon"></use>
-                </svg>
-                GitHub
-              </a>
-            </li>
-            <li>
-              <a href="https://chat.vite.dev/" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#discord-icon"></use>
-                </svg>
-                Discord
-              </a>
-            </li>
-            <li>
-              <a href="https://x.com/vite_js" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#x-icon"></use>
-                </svg>
-                X.com
-              </a>
-            </li>
-            <li>
-              <a href="https://bsky.app/profile/vite.dev" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#bluesky-icon"></use>
-                </svg>
-                Bluesky
-              </a>
-            </li>
-          </ul>
-        </div>
-      </section>
+      </div>
+    </div>
+  );
+};
 
-      <div className="ticks"></div>
-      <section id="spacer"></section>
-    </>
-  )
-}
-
-export default App
+export default App;
