@@ -61,7 +61,7 @@ function getClassicTurtlePositions(): { x: number; y: number; z: number }[] {
 }
 
 // 🔥 Regla Mahjong (bloqueos)
-function isSelectable(tile: any, tiles: any[]): boolean {
+function isSelectable(tile: Tile, tiles: Tile[]): boolean {
   if (tile.isMatched) return false;
 
   const active = tiles.filter(t => !t.isMatched);
@@ -198,6 +198,8 @@ export function selectTile(
   const isMatch = first.symbol === tile.symbol;
 
   let newTiles: Tile[];
+  let newPlayers = state.players;
+  let newScoreHistory = state.scoreHistory;
 
   if (isMatch) {
     newTiles = state.tiles.map(t =>
@@ -205,6 +207,18 @@ export function selectTile(
         ? { ...t, isMatched: true, lockedBy: null }
         : t
     );
+    
+    // 🎯 Incrementar score del jugador
+    newPlayers = state.players.map(p =>
+      p.id === playerId ? { ...p, score: p.score + 10 } : p
+    );
+    
+    // 📊 Agregar snapshot a history
+    const scores: Record<string, number> = {};
+    newPlayers.forEach(p => {
+      scores[p.id] = p.score;
+    });
+    newScoreHistory = [...state.scoreHistory, { timestamp: Date.now(), scores }];
   } else {
     newTiles = state.tiles.map(t =>
       (t.id === first.id || t.id === tile.id)
@@ -217,6 +231,8 @@ export function selectTile(
     newState: {
       ...state,
       tiles: newTiles,
+      players: newPlayers,
+      scoreHistory: newScoreHistory,
       isGameOver: newTiles.every(t => t.isMatched),
     },
     event: isMatch ? 'match' : 'no-match',

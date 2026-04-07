@@ -1,6 +1,9 @@
 export interface Tile {
   id: string;
   symbol: number;
+  x: number;
+  y: number;
+  z: number;
   isFlipped: boolean;
   isMatched: boolean;
   lockedBy: string | null;
