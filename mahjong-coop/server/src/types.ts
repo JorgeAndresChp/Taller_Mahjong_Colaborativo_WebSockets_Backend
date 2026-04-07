@@ -1,6 +1,9 @@
 export interface Tile {
-  id: string;  symbol: string;  isFlipped: boolean;
-  isMatched: boolean;  lockedBy: string | null;
+  id: string;
+  symbol: number;
+  isFlipped: boolean;
+  isMatched: boolean;
+  lockedBy: string | null;
 }
 export interface Player {
   id: string;  name: string;  score: number;  isConnected: boolean;
