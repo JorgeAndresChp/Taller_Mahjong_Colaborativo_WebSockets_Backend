@@ -27,12 +27,15 @@ export function setupSocket(io: SocketIOServer): void {
 
       if (event === 'no-match') {
         const frozenState = gameState;
+        const playerId = socket.id; // Guardar el ID del jugador
+        
         setTimeout(() => {
           if (gameState === frozenState) {
+            // Limpiar SOLO la selección del jugador que hizo no-match
             gameState = {
               ...gameState,
               tiles: gameState.tiles.map(t =>
-                (!t.isMatched && t.lockedBy === null)
+                t.lockedBy === playerId
                   ? { ...t, isFlipped: true, lockedBy: null }
                   : t
               ),

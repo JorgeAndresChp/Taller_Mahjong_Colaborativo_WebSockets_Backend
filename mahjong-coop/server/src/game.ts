@@ -14,37 +14,49 @@ function shuffle<T>(array: T[]): T[] {
 function getClassicTurtlePositions(): { x: number; y: number; z: number }[] {
   const pos: { x: number; y: number; z: number }[] = [];
 
+  // Z=0: BASE (84 fichas)
+  // Rectángulo principal 6x12
   for (let y = 1; y <= 6; y++) {
     for (let x = 2; x <= 13; x++) {
       pos.push({ x, y, z: 0 });
     }
   }
-
+  // Extensiones arriba y abajo 6x2
   for (let x = 4; x <= 9; x++) {
     pos.push({ x, y: 0, z: 0 });
     pos.push({ x, y: 7, z: 0 });
   }
 
+  // Z=1: SEGUNDA CAPA (36 fichas)
   for (let y = 1; y <= 6; y++) {
     for (let x = 4; x <= 9; x++) {
       pos.push({ x: x + 0.5, y: y + 0.5, z: 1 });
     }
   }
 
+  // Z=2: TERCERA CAPA (16 fichas)
   for (let y = 2; y <= 5; y++) {
     for (let x = 5; x <= 8; x++) {
       pos.push({ x: x + 1, y: y + 1, z: 2 });
     }
   }
 
+  // Z=3: CUARTA CAPA (4 fichas)
   for (let y = 3; y <= 4; y++) {
     for (let x = 6; x <= 7; x++) {
       pos.push({ x: x + 1.5, y: y + 1.5, z: 3 });
     }
   }
 
+  // Z=4: CÚPULA (1 ficha)
   pos.push({ x: 8, y: 4.5, z: 4 });
 
+  // Agregar 3 fichas más para llegar exactamente a 144 (72 pares)
+  pos.push({ x: 1, y: 1, z: 0 });
+  pos.push({ x: 14, y: 1, z: 0 });
+  pos.push({ x: 1, y: 6, z: 0 });
+
+  console.log(`Total positions created: ${pos.length}`);
   return pos.slice(0, 144);
 }
 
@@ -54,48 +66,55 @@ function isSelectable(tile: any, tiles: any[]): boolean {
 
   const active = tiles.filter(t => !t.isMatched);
 
+  // 🔴 BLOQUEO ARRIBA: Si hay fichas en capas superiores (z > tile.z) directamente encima
   const hasTop = active.some(t =>
     t.z > tile.z &&
-    Math.abs(t.x - tile.x) < 1 &&
-    Math.abs(t.y - tile.y) < 1
+    Math.abs(t.x - tile.x) <= 1 &&
+    Math.abs(t.y - tile.y) <= 1
   );
 
   if (hasTop) return false;
+
+  // 🔵 BLOQUEO LATERAL: Solo si tiene fichas en AMBOS lados SIMULTANEAMENTE
   const hasLeft = active.some(t =>
     t.z === tile.z &&
-    Math.abs(t.y - tile.y) < 0.6 &&
-    t.x < tile.x &&
-    tile.x - t.x < 1.1  
+    Math.abs(t.y - tile.y) <= 1 &&
+    t.x <= tile.x - 0.8 &&
+    t.x > tile.x - 2
   );
 
   const hasRight = active.some(t =>
     t.z === tile.z &&
-    Math.abs(t.y - tile.y) < 0.6 &&
-    t.x > tile.x &&
-    t.x - tile.x < 1.1  
+    Math.abs(t.y - tile.y) <= 1 &&
+    t.x >= tile.x + 0.8 &&
+    t.x < tile.x + 2
   );
 
-  return !hasLeft || !hasRight;
+  // ✔ Seleccionable si: NO tiene fichas encima Y tiene al menos UN lado libre
+  return !(hasLeft && hasRight);
 }
 
 // 🧱 Crear juego
 export function createGame(): GameState {
   const positions = getClassicTurtlePositions();
 
+  // Crear 72 pares (144 fichas con símbolos 0-71 duplicados)
+  const symbolArray = Array.from({ length: 72 }, (_, i) => i);
+  const doubledSymbols = [...symbolArray, ...symbolArray]; // 144 fichas, cada símbolo aparece 2 veces
+  const shuffledSymbols = shuffle(doubledSymbols); // Mezclar
+
   let tiles: Tile[] = positions.map((pos, i) => ({
     id: `tile-${i}`,
     x: pos.x,
     y: pos.y,
     z: pos.z,
-    symbol: Math.floor(i / 2),
+    symbol: shuffledSymbols[i] % 15, // Usar módulo 15 para que cabe en la lista de emojis (0-14)
     isMatched: false,
     isFlipped: true,
     lockedBy: null,
   }));
 
-  // Mezclar símbolos
-  const symbols = shuffle(tiles.map(t => t.symbol));
-  tiles = tiles.map((t, i) => ({ ...t, symbol: symbols[i] }));
+  console.log(`Created ${tiles.length} tiles with symbols 0-71 distributed`);
 
   return {
     tiles,
@@ -138,15 +157,16 @@ export function selectTile(
   const tile = state.tiles.find(t => t.id === tileId);
   const selected = state.tiles.filter(t => t.lockedBy === playerId);
 
-if (
-  !tile ||
-  tile.isMatched ||
-  (tile.lockedBy !== null && tile.lockedBy !== playerId) ||
-  (selected.length === 0 && !isSelectable(tile, state.tiles))
-) {
-  return { newState: state, event: null };
-}
+  if (
+    !tile ||
+    tile.isMatched ||
+    (tile.lockedBy !== null && tile.lockedBy !== playerId) ||
+    (selected.length === 0 && !isSelectable(tile, state.tiles))
+  ) {
+    return { newState: state, event: null };
+  }
 
+  // PRIMER CLICK
   if (selected.length === 0) {
     return {
       newState: {
@@ -160,35 +180,38 @@ if (
     };
   }
 
+  // SEGUNDO CLICK
   const first = selected[0];
 
-if (first.id === tile.id) {
-  return {
-    newState: {
-      ...state,
-      tiles: state.tiles.map(t =>
-        t.lockedBy === playerId ? { ...t, lockedBy: null } : t
-      ),
-    },
-    event: null,
-  };
-}
+  if (first.id === tile.id) {
+    return {
+      newState: {
+        ...state,
+        tiles: state.tiles.map(t =>
+          t.lockedBy === playerId ? { ...t, lockedBy: null } : t
+        ),
+      },
+      event: null,
+    };
+  }
 
-const isMatch = first.symbol === tile.symbol;
+  const isMatch = first.symbol === tile.symbol;
 
   let newTiles: Tile[];
 
-if (isMatch) {
-  newTiles = state.tiles.map(t =>
-    t.id === first.id || t.id === tile.id
-      ? { ...t, isMatched: true, lockedBy: null }
-      : t
-  );
-} else {
-  newTiles = state.tiles.map(t =>
-    t.lockedBy === playerId ? { ...t, lockedBy: null } : t
-  );
-}
+  if (isMatch) {
+    newTiles = state.tiles.map(t =>
+      t.id === first.id || t.id === tile.id
+        ? { ...t, isMatched: true, lockedBy: null }
+        : t
+    );
+  } else {
+    newTiles = state.tiles.map(t =>
+      (t.id === first.id || t.id === tile.id)
+        ? { ...t, lockedBy: playerId }
+        : t
+    );
+  }
 
   return {
     newState: {

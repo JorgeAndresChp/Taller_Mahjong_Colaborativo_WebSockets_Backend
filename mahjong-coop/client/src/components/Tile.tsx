@@ -56,17 +56,16 @@ export const Tile: React.FC<TileProps> = React.memo(({ tile, isBlocked = false, 
       };
     }
 
-    // Locked by other player (red with pulse)
+    // Locked by other player (blue - same as mine)
     if (isLockedByOther) {
       return {
         ...base,
-        backgroundColor: '#fca5a5',
-        borderColor: '#ef4444',
+        backgroundColor: '#93c5fd',
+        borderColor: '#3b82f6',
         opacity: 0.9,
         cursor: 'not-allowed',
         boxShadow:
-          '0 4px 12px rgba(239, 68, 68, 0.6), inset 0 1px 0 rgba(255,255,255,0.3)',
-        animation: 'pulse 2s infinite',
+          '0 4px 12px rgba(59, 130, 246, 0.7), inset 0 1px 0 rgba(255,255,255,0.4)',
       };
     }
 
@@ -162,20 +161,6 @@ export const Tile: React.FC<TileProps> = React.memo(({ tile, isBlocked = false, 
             }}
           >
             BLK
-          </span>
-        )}
-        {isLockedByOther && (
-          <span
-            style={{
-              fontSize: '0.6rem',
-              position: 'absolute',
-              bottom: '3px',
-              color: '#dc2626',
-              fontWeight: 'bold',
-              letterSpacing: '0.5px',
-            }}
-          >
-            LOCKED
           </span>
         )}
       </div>
