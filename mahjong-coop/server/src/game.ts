@@ -154,11 +154,10 @@ export function selectTile(
     !tile ||
     tile.isMatched ||
     (tile.lockedBy !== null && tile.lockedBy !== playerId) ||
-    (selected.length === 0 && !isSelectable(tile, state.tiles))
+    !isSelectable(tile, state.tiles)
   ) {
     return { newState: state, event: null };
   }
-
 
   if (selected.length === 0) {
     return {
@@ -173,6 +172,9 @@ export function selectTile(
     };
   }
 
+  if (selected.length >= 2) {
+    return { newState: state, event: null };
+  }
 
   const first = selected[0];
 
