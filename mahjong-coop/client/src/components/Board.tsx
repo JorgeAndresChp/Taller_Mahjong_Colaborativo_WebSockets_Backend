@@ -14,22 +14,24 @@ function isSelectable(tile: TileType, tiles: TileType[]): boolean {
   const active = tiles.filter(t => !t.isMatched);
   const hasTop = active.some(t =>
     t.z > tile.z &&
-    Math.abs(t.x - tile.x) < 0.6 &&
-    Math.abs(t.y - tile.y) < 0.6
+    Math.abs(t.x - tile.x) <= 1 &&
+    Math.abs(t.y - tile.y) <= 1
   );
 
   if (hasTop) return false;
 
   const hasLeft = active.some(t =>
     t.z === tile.z &&
-    Math.abs(t.y - tile.y) < 0.6 &&
-    Math.abs(t.x - (tile.x - 1)) < 0.6
+    Math.abs(t.y - tile.y) <= 1 &&
+    t.x <= tile.x - 0.8 &&
+    t.x > tile.x - 2
   );
 
   const hasRight = active.some(t =>
     t.z === tile.z &&
-    Math.abs(t.y - tile.y) < 0.6 &&
-    Math.abs(t.x - (tile.x + 1)) < 0.6
+    Math.abs(t.y - tile.y) <= 1 &&
+    t.x >= tile.x + 0.8 &&
+    t.x < tile.x + 2
   );
 
   return !hasLeft || !hasRight;

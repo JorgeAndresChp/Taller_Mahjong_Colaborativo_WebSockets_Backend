@@ -18,7 +18,7 @@ export const Tile: React.FC<TileProps> = React.memo(({ tile, isBlocked = false, 
   const isLockedByMe = tile.lockedBy === currentPlayerId;
   const isLockedByOther = tile.lockedBy !== null && !isLockedByMe;
   const showSymbol = tile.isFlipped || tile.isMatched;
-  const isClickable = !tile.isMatched && !isLockedByOther;
+  const isClickable = !tile.isMatched && !isLockedByOther && !isBlocked;
 
   const getStyles = (): React.CSSProperties => {
     const base: React.CSSProperties = {
