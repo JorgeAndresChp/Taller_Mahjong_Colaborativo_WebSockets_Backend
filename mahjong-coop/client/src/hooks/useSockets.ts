@@ -2,7 +2,7 @@ import { useState, useEffect, useRef } from 'react';
 import { io, type Socket } from 'socket.io-client';
 import { type GameState } from '../types';
 
-const SOCKET_URL = 'http://localhost:3001';
+const SOCKET_URL = import.meta.env.VITE_SERVER_URL || 'http://localhost:3001';
 
 interface UseSocketReturn {
   gameState: GameState | null;
