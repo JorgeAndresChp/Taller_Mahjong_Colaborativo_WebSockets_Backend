@@ -154,7 +154,7 @@ export function selectTile(
     !tile ||
     tile.isMatched ||
     (tile.lockedBy !== null && tile.lockedBy !== playerId) ||
-    !isSelectable(tile, state.tiles)
+    (selected.length === 0 && !isSelectable(tile, state.tiles))
   ) {
     return { newState: state, event: null };
   }
