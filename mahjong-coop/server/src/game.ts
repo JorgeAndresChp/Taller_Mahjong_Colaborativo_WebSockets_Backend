@@ -1,6 +1,5 @@
 import { Tile, Player, GameState, ScoreSnapshot } from './types';
 
-// 🔀 Mezclar
 function shuffle<T>(array: T[]): T[] {
   const arr = [...array];
   for (let i = arr.length - 1; i > 0; i--) {
@@ -10,48 +9,46 @@ function shuffle<T>(array: T[]): T[] {
   return arr;
 }
 
-// 🧠 Posiciones tipo tortuga (Mahjong real)
 function getClassicTurtlePositions(): { x: number; y: number; z: number }[] {
   const pos: { x: number; y: number; z: number }[] = [];
 
-  // Z=0: BASE (84 fichas)
-  // Rectángulo principal 6x12
+
   for (let y = 1; y <= 6; y++) {
     for (let x = 2; x <= 13; x++) {
       pos.push({ x, y, z: 0 });
     }
   }
-  // Extensiones arriba y abajo 6x2
+
   for (let x = 4; x <= 9; x++) {
     pos.push({ x, y: 0, z: 0 });
     pos.push({ x, y: 7, z: 0 });
   }
 
-  // Z=1: SEGUNDA CAPA (36 fichas)
+
   for (let y = 1; y <= 6; y++) {
     for (let x = 4; x <= 9; x++) {
       pos.push({ x: x + 0.5, y: y + 0.5, z: 1 });
     }
   }
 
-  // Z=2: TERCERA CAPA (16 fichas)
+
   for (let y = 2; y <= 5; y++) {
     for (let x = 5; x <= 8; x++) {
       pos.push({ x: x + 1, y: y + 1, z: 2 });
     }
   }
 
-  // Z=3: CUARTA CAPA (4 fichas)
+
   for (let y = 3; y <= 4; y++) {
     for (let x = 6; x <= 7; x++) {
       pos.push({ x: x + 1.5, y: y + 1.5, z: 3 });
     }
   }
 
-  // Z=4: CÚPULA (1 ficha)
+
   pos.push({ x: 8, y: 4.5, z: 4 });
 
-  // Agregar 3 fichas más para llegar exactamente a 144 (72 pares)
+
   pos.push({ x: 1, y: 1, z: 0 });
   pos.push({ x: 14, y: 1, z: 0 });
   pos.push({ x: 1, y: 6, z: 0 });
@@ -60,13 +57,12 @@ function getClassicTurtlePositions(): { x: number; y: number; z: number }[] {
   return pos.slice(0, 144);
 }
 
-// 🔥 Regla Mahjong (bloqueos)
 function isSelectable(tile: Tile, tiles: Tile[]): boolean {
   if (tile.isMatched) return false;
 
   const active = tiles.filter(t => !t.isMatched);
 
-  // 🔴 BLOQUEO ARRIBA: Si hay fichas en capas superiores (z > tile.z) directamente encima
+
   const hasTop = active.some(t =>
     t.z > tile.z &&
     Math.abs(t.x - tile.x) <= 1 &&
@@ -75,7 +71,7 @@ function isSelectable(tile: Tile, tiles: Tile[]): boolean {
 
   if (hasTop) return false;
 
-  // 🔵 BLOQUEO LATERAL: Solo si tiene fichas en AMBOS lados SIMULTANEAMENTE
+
   const hasLeft = active.some(t =>
     t.z === tile.z &&
     Math.abs(t.y - tile.y) <= 1 &&
@@ -90,25 +86,23 @@ function isSelectable(tile: Tile, tiles: Tile[]): boolean {
     t.x < tile.x + 2
   );
 
-  // ✔ Seleccionable si: NO tiene fichas encima Y tiene al menos UN lado libre
+
   return !(hasLeft && hasRight);
 }
 
-// 🧱 Crear juego
 export function createGame(): GameState {
   const positions = getClassicTurtlePositions();
 
-  // Crear 72 pares (144 fichas con símbolos 0-71 duplicados)
   const symbolArray = Array.from({ length: 72 }, (_, i) => i);
-  const doubledSymbols = [...symbolArray, ...symbolArray]; // 144 fichas, cada símbolo aparece 2 veces
-  const shuffledSymbols = shuffle(doubledSymbols); // Mezclar
+  const doubledSymbols = [...symbolArray, ...symbolArray];
+  const shuffledSymbols = shuffle(doubledSymbols);
 
   let tiles: Tile[] = positions.map((pos, i) => ({
     id: `tile-${i}`,
     x: pos.x,
     y: pos.y,
     z: pos.z,
-    symbol: shuffledSymbols[i] % 15, // Usar módulo 15 para que cabe en la lista de emojis (0-14)
+    symbol: shuffledSymbols[i] % 15,
     isMatched: false,
     isFlipped: true,
     lockedBy: null,
@@ -125,7 +119,6 @@ export function createGame(): GameState {
   };
 }
 
-// 👤 Jugadores
 export function addPlayer(state: GameState, id: string, name: string): GameState {
   const newPlayer: Player = { id, name, score: 0, isConnected: true };
 
@@ -166,7 +159,7 @@ export function selectTile(
     return { newState: state, event: null };
   }
 
-  // PRIMER CLICK
+
   if (selected.length === 0) {
     return {
       newState: {
@@ -180,7 +173,7 @@ export function selectTile(
     };
   }
 
-  // SEGUNDO CLICK
+
   const first = selected[0];
 
   if (first.id === tile.id) {
@@ -208,12 +201,10 @@ export function selectTile(
         : t
     );
     
-    // 🎯 Incrementar score del jugador
     newPlayers = state.players.map(p =>
       p.id === playerId ? { ...p, score: p.score + 10 } : p
     );
     
-    // 📊 Agregar snapshot a history
     const scores: Record<string, number> = {};
     newPlayers.forEach(p => {
       scores[p.id] = p.score;

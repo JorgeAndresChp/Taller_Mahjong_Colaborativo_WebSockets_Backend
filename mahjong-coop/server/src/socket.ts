@@ -8,7 +8,6 @@ export function setupSocket(io: SocketIOServer): void {
   io.on('connection', (socket: Socket) => {
     console.log('Client connected:', socket.id);
     
-    // Send current game state to the newly connected client
     socket.emit('game:state', gameState);
 
     socket.on('player:join', (data: { name: string }, callback?: (playerId: string) => void) => {
@@ -27,11 +26,10 @@ export function setupSocket(io: SocketIOServer): void {
 
       if (event === 'no-match') {
         const frozenState = gameState;
-        const playerId = socket.id; // Guardar el ID del jugador
+        const playerId = socket.id;
         
         setTimeout(() => {
           if (gameState === frozenState) {
-            // Limpiar SOLO la selección del jugador que hizo no-match
             gameState = {
               ...gameState,
               tiles: gameState.tiles.map(t =>

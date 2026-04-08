@@ -19,7 +19,6 @@ export const useSocket = (): UseSocketReturn => {
   const socketRef = useRef<Socket | null>(null);
 
   useEffect(() => {
-    // Initialize socket connection
     const socket = io(SOCKET_URL, {
       reconnection: true,
       reconnectionDelay: 1000,
@@ -28,31 +27,25 @@ export const useSocket = (): UseSocketReturn => {
     });
 
     socketRef.current = socket;
-
-    // Handle connection
     socket.on('connect', () => {
       console.log('Connected to server:', socket.id);
       setIsConnected(true);
     });
 
-    // Handle disconnection
     socket.on('disconnect', () => {
       console.log('Disconnected from server');
       setIsConnected(false);
     });
 
-    // Handle game state updates
     socket.on('game:state', (state: GameState) => {
       console.log('Received game state:', state);
       setGameState(state);
     });
 
-    // Handle connection errors
     socket.on('connect_error', (error) => {
       console.error('Connection error:', error);
     });
 
-    // Cleanup on unmount
     return () => {
       socket.disconnect();
     };

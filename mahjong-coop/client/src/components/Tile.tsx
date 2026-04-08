@@ -1,11 +1,9 @@
 import React from 'react';
 import { type Tile as TileType } from '../types';
 
-// Map symbol numbers to emojis (visible standard emojis)
 const SYMBOL_MAP = ['🌸', '🌺', '🌻', '🌷', '🌹', '🏮', '🎋', '🎍', '⛩️', '🎎', '🎏', '🎐', '🎑', '🎀', '🎁'];
 
 const getSymbolEmoji = (symbolNumber: number): string => {
-  // Ensure each symbol number 0-14 maps to a unique emoji
   return SYMBOL_MAP[Math.abs(symbolNumber) % SYMBOL_MAP.length] || '❓';
 };
 
@@ -43,7 +41,6 @@ export const Tile: React.FC<TileProps> = React.memo(({ tile, isBlocked = false, 
       transformStyle: 'preserve-3d',
     };
 
-    // Matched tiles (green with glow)
     if (tile.isMatched) {
       return {
         ...base,
@@ -56,7 +53,6 @@ export const Tile: React.FC<TileProps> = React.memo(({ tile, isBlocked = false, 
       };
     }
 
-    // Locked by other player (blue - same as mine)
     if (isLockedByOther) {
       return {
         ...base,
@@ -69,7 +65,6 @@ export const Tile: React.FC<TileProps> = React.memo(({ tile, isBlocked = false, 
       };
     }
 
-    // Locked by me (blue highlight)
     if (isLockedByMe) {
       return {
         ...base,
@@ -81,7 +76,6 @@ export const Tile: React.FC<TileProps> = React.memo(({ tile, isBlocked = false, 
       };
     }
 
-    // Blocked tiles (grayed out - has tiles above)
     if (isBlocked) {
       return {
         ...base,
@@ -94,7 +88,6 @@ export const Tile: React.FC<TileProps> = React.memo(({ tile, isBlocked = false, 
       };
     }
 
-    // Hidden tile (dark)
     if (!showSymbol) {
       return {
         ...base,
@@ -107,7 +100,6 @@ export const Tile: React.FC<TileProps> = React.memo(({ tile, isBlocked = false, 
       };
     }
 
-    // Default flipped state
     return {
       ...base,
       backgroundColor: '#ffffff',

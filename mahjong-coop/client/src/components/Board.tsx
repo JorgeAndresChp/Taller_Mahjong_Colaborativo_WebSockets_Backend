@@ -8,13 +8,10 @@ interface BoardProps {
   onTileClick: (id: string) => void;
 }
 
-// 🔥 FUNCIÓN CLAVE: determinar si una ficha está bloqueada
 function isSelectable(tile: TileType, tiles: TileType[]): boolean {
   if (tile.isMatched) return false;
 
   const active = tiles.filter(t => !t.isMatched);
-
-  // 🔴 BLOQUEO ARRIBA (más preciso)
   const hasTop = active.some(t =>
     t.z > tile.z &&
     Math.abs(t.x - tile.x) < 0.6 &&
@@ -23,21 +20,18 @@ function isSelectable(tile: TileType, tiles: TileType[]): boolean {
 
   if (hasTop) return false;
 
-  // 🔵 BLOQUEO IZQUIERDA (exacto)
   const hasLeft = active.some(t =>
     t.z === tile.z &&
     Math.abs(t.y - tile.y) < 0.6 &&
     Math.abs(t.x - (tile.x - 1)) < 0.6
   );
 
-  // 🔵 BLOQUEO DERECHA (exacto)
   const hasRight = active.some(t =>
     t.z === tile.z &&
     Math.abs(t.y - tile.y) < 0.6 &&
     Math.abs(t.x - (tile.x + 1)) < 0.6
   );
 
-  // ✔ Mahjong real: libre si tiene un lado libre
   return !hasLeft || !hasRight;
 }
 
@@ -65,7 +59,6 @@ export const Board: React.FC<BoardProps> = ({
 
   return (
     <div>
-      {/* 🔥 INFO */}
       <div
         style={{
           textAlign: 'center',
@@ -77,7 +70,6 @@ export const Board: React.FC<BoardProps> = ({
         <strong>🎯 Tiles Matched:</strong> {matchedCount} / {totalMatches} pairs
       </div>
 
-      {/* 🔥 TABLERO */}
       <div style={containerStyle}>
         {tiles.map((tile) => {
           if (tile.isMatched) return null;

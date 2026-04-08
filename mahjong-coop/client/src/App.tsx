@@ -8,7 +8,6 @@ import { useSocket } from './hooks/useSockets';
 const App: React.FC = () => {
   const { gameState, isConnected, currentPlayerId, joinGame, selectTile } = useSocket();
 
-  // Show loading if socket is connecting
   if (!isConnected || !gameState) {
     return (
       <div
@@ -33,12 +32,10 @@ const App: React.FC = () => {
     );
   }
 
-  // Show lobby if not joined yet
   if (!currentPlayerId) {
     return <Lobby joinGame={joinGame} />;
   }
 
-  // Find current player from gameState
   const currentPlayer = gameState.players.find((p) => p.id === currentPlayerId);
 
   return (
@@ -51,7 +48,6 @@ const App: React.FC = () => {
         color: '#e2e8f0',
       }}
     >
-      {/* Header */}
       <header
         style={{
           textAlign: 'center',
@@ -97,7 +93,6 @@ const App: React.FC = () => {
         </div>
       </header>
 
-      {/* Game Over Banner */}
       {gameState.isGameOver && (
         <div
           style={{
@@ -115,7 +110,6 @@ const App: React.FC = () => {
         </div>
       )}
 
-      {/* Main Game Area */}
       <div
         style={{
           display: 'flex',
@@ -125,12 +119,10 @@ const App: React.FC = () => {
           marginBottom: '40px',
         }}
       >
-        {/* Board */}
         <div style={{ flex: '0 1 900px' }}>
           <Board tiles={gameState.tiles} currentPlayerId={currentPlayerId} onTileClick={selectTile} />
         </div>
 
-        {/* Sidebar - Scoreboard & Chart */}
         <div
           style={{
             flex: '0 1 420px',
@@ -144,7 +136,6 @@ const App: React.FC = () => {
         </div>
       </div>
 
-      {/* Footer */}
       <footer
         style={{
           textAlign: 'center',
