@@ -150,16 +150,12 @@ export function selectTile(
   const tile = state.tiles.find(t => t.id === tileId);
   const selected = state.tiles.filter(t => t.lockedBy === playerId);
 
-
-  if (!tile || tile.isMatched) {
-    return { newState: state, event: null };
-  }
-
-  if (tile.lockedBy !== null && tile.lockedBy !== playerId) {
-    return { newState: state, event: null };
-  }
-
-  if (!isSelectable(tile, state.tiles)) {
+  if (
+    !tile ||
+    tile.isMatched ||
+    (tile.lockedBy !== null && tile.lockedBy !== playerId) ||
+    (selected.length === 0 && !isSelectable(tile, state.tiles))
+  ) {
     return { newState: state, event: null };
   }
 
