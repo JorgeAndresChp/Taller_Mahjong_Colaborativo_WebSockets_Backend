@@ -62,32 +62,27 @@ function isSelectable(tile: Tile, tiles: Tile[]): boolean {
 
   const active = tiles.filter(t => !t.isMatched);
 
-
   const hasTop = active.some(t =>
     t.z > tile.z &&
-    Math.abs(t.x - tile.x) <= 1 &&
-    Math.abs(t.y - tile.y) <= 1
+    Math.abs(t.x - tile.x) < 0.6 &&
+    Math.abs(t.y - tile.y) < 0.6
   );
 
   if (hasTop) return false;
 
-
   const hasLeft = active.some(t =>
     t.z === tile.z &&
-    Math.abs(t.y - tile.y) <= 1 &&
-    t.x <= tile.x - 0.8 &&
-    t.x > tile.x - 2
+    Math.abs(t.y - tile.y) < 0.6 &&
+    Math.abs(t.x - (tile.x - 1)) < 0.6
   );
 
   const hasRight = active.some(t =>
     t.z === tile.z &&
-    Math.abs(t.y - tile.y) <= 1 &&
-    t.x >= tile.x + 0.8 &&
-    t.x < tile.x + 2
+    Math.abs(t.y - tile.y) < 0.6 &&
+    Math.abs(t.x - (tile.x + 1)) < 0.6
   );
 
-
-  return !(hasLeft && hasRight);
+  return !hasLeft || !hasRight;
 }
 
 export function createGame(): GameState {
@@ -150,14 +145,19 @@ export function selectTile(
   const tile = state.tiles.find(t => t.id === tileId);
   const selected = state.tiles.filter(t => t.lockedBy === playerId);
 
+  const isBlocked = tile && !isSelectable(tile, state.tiles);
+  
   if (
     !tile ||
     tile.isMatched ||
     (tile.lockedBy !== null && tile.lockedBy !== playerId) ||
-    (selected.length === 0 && !isSelectable(tile, state.tiles))
+    isBlocked
   ) {
+    console.log(`Tile rejected - id: ${tileId}, isBlocked: ${isBlocked}`);
     return { newState: state, event: null };
   }
+  
+  console.log(`Tile accepted - id: ${tileId}`);
 
 
   if (selected.length === 0) {
