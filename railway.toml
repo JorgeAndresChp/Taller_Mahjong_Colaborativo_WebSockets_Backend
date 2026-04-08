@@ -1,7 +1,10 @@
 [build]
 builder = "nixpacks"
-buildCommand = "cd mahjong-coop/server && npm install"
+buildCommand = "npm install"
 
 [deploy]
-startCommand = "cd mahjong-coop/server && npm start"
+startCommand = "npm start"
 PORT = 3001
+
+[env]
+workingDirectory = "mahjong-coop/server"
